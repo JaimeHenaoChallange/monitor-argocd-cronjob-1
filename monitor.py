@@ -32,6 +32,12 @@ def main():
 
             for app in apps:
                 app_name = app.get("metadata", {}).get("name", "Desconocido")
+                
+                # Excluir la aplicación 'argocd-monitor' del análisis
+                if app_name == "argocd-monitor":
+                    print(f"⏩ Excluyendo la aplicación '{app_name}' del análisis.")
+                    continue
+
                 print(f"🔄 Procesando la aplicación: {app_name}")  # Mensaje de depuración
                 ArgoCDClient.refresh_app(app_name, timeout=REQUEST_TIMEOUT)
                 health_status, sync_status = ArgoCDClient.get_application_status(app_name, timeout=REQUEST_TIMEOUT)
