@@ -6,9 +6,9 @@ metadata:
 spec:
   project: kubeops
   source:
-    repoURL: https://github.com/JaimeHenaoChallange/opcion2.git
+    repoURL: https://github.com/JaimeHenaoChallange/monitor-argocd-cronjob-1.git
     targetRevision: HEAD
-    path: scripts/cronjob-1
+    path: . # Cambiado para apuntar a la raíz del repositorio
   destination:
     server: https://kubernetes.default.svc
     namespace: poc

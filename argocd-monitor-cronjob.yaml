@@ -4,10 +4,11 @@ metadata:
   name: argocd-monitor
   namespace: poc
 spec:
-  schedule: "*/1 * * * *" # Ejecutar cada minuto
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 1
-  suspend: false # Cambia a true para pausar el CronJob
+  schedule: "*/5 * * * *" # Cambiado para ejecutar cada 5 minutos
+  successfulJobsHistoryLimit: 1 # Mantener solo 1 job exitoso en el historial
+  failedJobsHistoryLimit: 1 # Mantener solo 1 job fallido en el historial
+  concurrencyPolicy: Forbid # Evitar que se ejecuten múltiples instancias al mismo tiempo
+  suspend: false
   jobTemplate:
     spec:
       template:

@@ -7,8 +7,13 @@ spec:
   destinations:
     - namespace: poc
       server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
   sourceRepos:
-    - '*'
+    - https://github.com/JaimeHenaoChallange/monitor-argocd-cronjob-1.git
+    - https://github.com/JaimeHenaoChallange/kubeops.git
+    - https://github.com/JaimeHenaoChallange/app-1.git
+    - https://github.com/JaimeHenaoChallange/app-2.git
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'
