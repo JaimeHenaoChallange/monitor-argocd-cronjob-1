@@ -1,19 +1,17 @@
+# Use a lightweight Python image
 FROM python:3.9-slim
 
-# Establecer el directorio de trabajo
+# Set the working directory
 WORKDIR /app
 
-# Copiar los archivos necesarios
+# Copy the application files
 COPY . /app
 
-# Instalar las dependencias
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar el archivo .env
-COPY .env /app/.env
-
-# Configurar Python para que no almacene en búfer la salida
+# Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Comando de inicio
+# Define the command to run the monitor script
 CMD ["python", "monitor.py"]

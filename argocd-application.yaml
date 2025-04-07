@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/JaimeHenaoChallange/monitor-argocd-cronjob-1.git
     targetRevision: HEAD
-    path: . # Cambiado para apuntar a la raíz del repositorio
+    path: .
   destination:
     server: https://kubernetes.default.svc
     namespace: poc

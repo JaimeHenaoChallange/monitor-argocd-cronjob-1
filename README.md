@@ -2,7 +2,7 @@
 
 ## Overview
 
-The ArgoCD Monitor is a Kubernetes-based solution designed to monitor the health and synchronization status of ArgoCD applications. It automatically synchronizes applications and sends notifications to a Slack channel in case of issues. This tool ensures that your applications remain in a healthy state and provides timely alerts for any problems.
+The ArgoCD Monitor is a Kubernetes-based solution designed to monitor the health and synchronization status of ArgoCD applications. It interacts with the ArgoCD API to ensure applications are in a healthy and synchronized state. Notifications are sent to a Slack channel in case of issues, providing timely alerts for degraded or error states.
 
 ---
 
@@ -13,8 +13,8 @@ The ArgoCD Monitor is a Kubernetes-based solution designed to monitor the health
 ```plaintext
 +-------------------+       +-------------------+
 |                   |       |                   |
-|  Kubernetes Cron  |       |   ArgoCD Server   |
-|      Job          |       |                   |
+|   ArgoCD Monitor  |       |   ArgoCD Server   |
+|      Script       |       |                   |
 |                   |       |                   |
 |  +-------------+  |       |  +-------------+  |
 |  | monitor.py  |  |       |  | ArgoCD API  |  |
@@ -36,43 +36,114 @@ The ArgoCD Monitor is a Kubernetes-based solution designed to monitor the health
 
 ---
 
+### Directory Structure Diagram
+
+```plaintext
+/workspaces/monitor-2/scripts/monitor-argocd-cronjob-1
+├── argocd-monitor.yaml
+├── argocd-application.yaml
+├── Dockerfile
+├── requirements.txt
+├── logic/
+│   ├── argocd_client.py
+│   ├── slack_notifier.py
+│   └── config.py
+└── monitor.py
+```
+
+---
+
 ## Features
 
 - **Health Monitoring**: Continuously monitors the health and synchronization status of ArgoCD applications.
 - **Automatic Synchronization**: Automatically synchronizes applications that are out of sync.
 - **Slack Notifications**: Sends notifications to a Slack channel for degraded or error states.
-- **Configurable**: Easily configurable via environment variables and Kubernetes secrets.
 - **Retry Mechanism**: Attempts to recover applications up to three times before pausing and notifying.
-- **Kubernetes Integration**: Fully integrated with Kubernetes CronJobs for periodic execution.
+- **Configurable**: Easily configurable via environment variables and Kubernetes secrets.
 
 ---
 
-## Installation
+## Directory Structure
 
-### Prerequisites
+The directory contains the following files and subdirectories:
 
-- Kubernetes cluster with ArgoCD installed.
-- Slack Webhook URL for notifications.
-- Access to the ArgoCD API with a valid token.
+- **`argocd-monitor.yaml`**: Kubernetes manifests for the monitor, including ConfigMaps, Secrets, and Deployment.
+- **`argocd-application.yaml`**: ArgoCD Application resource to manage the monitor itself.
+- **`Dockerfile`**: Dockerfile for building the monitor's container image.
+- **`requirements.txt`**: Python dependencies for the monitor.
+- **`logic/`**: Contains Python modules for interacting with ArgoCD and Slack.
+  - `argocd_client.py`: Handles communication with the ArgoCD API.
+  - `slack_notifier.py`: Sends notifications to Slack.
+  - `config.py`: Loads and validates environment variables.
+- **`monitor.py`**: Main script for monitoring and managing ArgoCD applications.
 
-### Steps
+---
 
-1. **Clone the Repository**:
+## Implementation Guide
+
+### Step 1: Build the Docker Image
+
+1. **Navigate to the directory**:
    ```bash
-   git clone https://github.com/JaimeHenaoChallange/opcion2.git
-   cd opcion2/scripts/monitor-argocd-cronjob-1
+   cd /workspaces/monitor-2/scripts/monitor-argocd-cronjob-1
    ```
 
-2. **Apply Kubernetes Manifests**:
-   Deploy the required resources (CronJob, ConfigMap, Secrets, etc.) to your Kubernetes cluster:
+2. **Build the Docker image**:
    ```bash
-   kubectl apply -f /workspaces/monitor-2/scripts/monitor-argocd-cronjob-1/
+   docker build -t jaimehenao8126/argocd-monitor:latest .
    ```
 
-3. **Verify Deployment**:
-   Ensure the CronJob and related resources are running:
+3. **Verify the image**:
    ```bash
-   kubectl get cronjob -n poc
+   docker images | grep argocd-monitor
+   ```
+
+### Step 2: Push the Image to DockerHub
+
+1. **Log in to DockerHub**:
+   ```bash
+   docker login
+   ```
+
+2. **Push the image**:
+   ```bash
+   docker push jaimehenao8126/argocd-monitor:latest
+   ```
+
+3. **Verify the image on DockerHub**:
+   Visit your DockerHub repository to confirm the image is available.
+
+---
+
+## Kubernetes Deployment
+
+### Step 1: Apply Kubernetes Manifests
+
+1. **Apply the namespace, ConfigMap, and Secret**:
+   ```bash
+   kubectl apply -f argocd-monitor.yaml
+   ```
+
+2. **Apply the ArgoCD Application resource**:
+   ```bash
+   kubectl apply -f argocd-application.yaml
+   ```
+
+3. **Verify the deployment**:
+   ```bash
+   kubectl get pods -n poc
+   ```
+
+### Step 2: Monitor Logs
+
+1. **View logs of the monitor**:
+   ```bash
+   kubectl logs -l app=argocd-monitor -n poc
+   ```
+
+2. **Debug issues if necessary**:
+   ```bash
+   kubectl describe pod <pod-name> -n poc
    ```
 
 ---
@@ -94,11 +165,11 @@ The `ARGOCD_TOKEN` should be stored securely in a Kubernetes secret. Example:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: argocd-token-secret
+  name: argocd-monitor-secret
   namespace: poc
 type: Opaque
 data:
-  token: <base64-encoded-token>
+  ARGOCD_TOKEN: <base64-encoded-token>
 ```
 
 ### ConfigMap
@@ -116,30 +187,18 @@ data:
 
 ---
 
-## Usage
+## Verifying Connectivity
 
-### Monitor Logs
+### Test ArgoCD API Connectivity
 
-To view the logs of the CronJob:
-```bash
-kubectl logs -l app.kubernetes.io/name=argocd-monitor -n poc
-```
-
-### Test Connectivity
-
-To test connectivity to the ArgoCD API:
+To verify connectivity to the ArgoCD API from within the Kubernetes cluster:
 ```bash
 kubectl run -it --rm debug --image=alpine --restart=Never -n poc -- sh
 apk add curl
-curl -k https://argocd-server.argocd.svc.cluster.local:443/api/v1/applications
+curl -k https://argocd-server.argocd.svc.cluster.local/api/v1/applications
 ```
 
-### Manual Synchronization
-
-To manually synchronize an application in ArgoCD:
-```bash
-argocd app sync <application-name>
-```
+If the response contains application data, the connectivity is working correctly.
 
 ---
 
