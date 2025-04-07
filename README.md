@@ -6,6 +6,63 @@ The ArgoCD Monitor is a Kubernetes-based solution designed to monitor the health
 
 ---
 
+## Automating Deployments
+
+### GitHub Actions Workflow
+
+To automate the deployment of the Docker image to DockerHub, you can use a GitHub Actions workflow. Create a file named `.github/workflows/docker-publish.yml` in your repository with the following content:
+
+```yaml
+name: Docker Image CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: jaimehenao8126/argocd-monitor:latest
+```
+
+### Steps to Configure
+
+1. **Add Secrets to GitHub**:
+   - Go to your repository settings on GitHub.
+   - Add the following secrets:
+     - `DOCKER_USERNAME`: Your DockerHub username.
+     - `DOCKER_PASSWORD`: Your DockerHub password.
+
+2. **Push Changes**:
+   Commit and push the `.github/workflows/docker-publish.yml` file to the `main` branch.
+
+3. **Trigger Workflow**:
+   The workflow will automatically build and push the Docker image to DockerHub whenever changes are pushed to the `main` branch or a pull request is created.
+
+---
+
 ## Architecture
 
 ### High-Level Diagram
