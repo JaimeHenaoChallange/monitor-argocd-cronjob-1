@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    ARGOCD_API = os.getenv("ARGOCD_API", "http://argocd-monitor-service.poc.svc.cluster.local/api/v1")
+    ARGOCD_API = os.getenv("ARGOCD_API", "https://localhost:8080/api/v1")
     ARGOCD_TOKEN = os.getenv("ARGOCD_TOKEN")
-    SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+    SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")  # Cargar desde variable de entorno
 
     @staticmethod
     def validate():
