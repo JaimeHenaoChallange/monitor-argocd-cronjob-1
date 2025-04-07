@@ -9,6 +9,9 @@ COPY . /app
 # Instalar las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copiar el archivo .env
+COPY .env /app/.env
+
 # Configurar Python para que no almacene en búfer la salida
 ENV PYTHONUNBUFFERED=1
 
