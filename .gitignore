@@ -1,0 +1,9 @@
+# Ignorar entornos virtuales
+venv/
+poc/bin/
+
+# Ignorar el directorio "example-dir"
+example-dir/
+
+# Ignorar el archivo .env
+.env
