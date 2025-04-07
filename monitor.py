@@ -79,6 +79,8 @@ def main():
 
         except Exception as e:
             print(f"❌ Error en el ciclo principal: {e}")
+            import traceback
+            traceback.print_exc()  # Agregar traza para depuración
             time.sleep(30)
 
 if __name__ == "__main__":

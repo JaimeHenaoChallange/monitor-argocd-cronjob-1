@@ -7,8 +7,10 @@ WORKDIR /app
 # Copy the application files
 COPY . /app
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies and clean up build dependencies
+RUN pip install --no-cache-dir -r requirements.txt && \
+    apt-get purge -y --auto-remove && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

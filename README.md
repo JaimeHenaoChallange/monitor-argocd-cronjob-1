@@ -207,14 +207,6 @@ The directory contains the following files and subdirectories:
 
 ## Configuration
 
-### Environment Variables
-
-The following environment variables are required for the monitor to function:
-
-- `ARGOCD_API`: The ArgoCD API endpoint (e.g., `https://argocd-server.argocd.svc.cluster.local/api/v1`).
-- `ARGOCD_TOKEN`: The ArgoCD API token stored in a Kubernetes secret.
-- `SLACK_WEBHOOK_URL`: The Slack Webhook URL for sending notifications.
-
 ### Kubernetes Secrets
 
 The `ARGOCD_TOKEN` should be stored securely in a Kubernetes secret. Example:
