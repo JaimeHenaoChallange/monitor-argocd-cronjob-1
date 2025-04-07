@@ -11,7 +11,7 @@ metadata:
   namespace: poc
 data:
   ARGOCD_API: "https://argocd-server.argocd.svc.cluster.local/api/v1"
-  SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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" # Actualizado con la nueva URL
+  SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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" # Actualizado con la nueva URL
 
 ---
 apiVersion: v1
