@@ -10,7 +10,7 @@ metadata:
   name: argocd-monitor-config
   namespace: poc
 data:
-  ARGOCD_API: "https://localhost:8080/api/v1" # Actualizado para usar localhost con port-forward
+  ARGOCD_API: "https://argocd-server.argocd.svc.cluster.local/api/v1" # Cambiado para usar el servicio de ArgoCD en el clúster
   SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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"
 
 ---
