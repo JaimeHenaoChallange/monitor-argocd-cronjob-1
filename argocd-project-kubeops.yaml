@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: kubeops
+  namespace: argocd
+spec:
+  destinations:
+    - namespace: poc
+      server: https://kubernetes.default.svc
+  sourceRepos:
+    - '*'
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

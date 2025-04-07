@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-monitor
+  namespace: argocd
+spec:
+  project: kubeops
+  source:
+    repoURL: https://github.com/JaimeHenaoChallange/opcion2.git
+    targetRevision: HEAD
+    path: scripts/cronjob-1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: poc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

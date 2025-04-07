@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argocd-monitor-sa-rolebinding
+  namespace: argocd
+subjects:
+  - kind: ServiceAccount
+    name: argocd-monitor-sa # ServiceAccount utilizado por el monitor
+    namespace: poc
+roleRef:
+  kind: Role
+  name: argocd-server # Rol con permisos completos
+  apiGroup: rbac.authorization.k8s.io

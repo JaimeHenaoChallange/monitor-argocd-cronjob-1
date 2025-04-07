@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: argocd-monitor
+  namespace: poc
+spec:
+  schedule: "*/1 * * * *" # Ejecutar cada minuto
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  suspend: false # Cambia a true para pausar el CronJob
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: argocd-monitor-sa
+          containers:
+            - name: argocd-monitor
+              image: jaimehenao8126/argocd-monitor:latest
+              envFrom:
+                - configMapRef:
+                    name: argocd-monitor-config
+                - secretRef:
+                    name: argocd-monitor-secret
+              resources:
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
+                requests:
+                  memory: "128Mi"
+                  cpu: "250m"
+          restartPolicy: OnFailure
