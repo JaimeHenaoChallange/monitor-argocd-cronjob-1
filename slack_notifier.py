@@ -25,6 +25,7 @@ class SlackNotifier:
             ]
         }
         try:
+            print(f"🔍 Enviando notificación a Slack para la aplicación '{app_name}'")  # Depuración
             response = requests.post(Config.SLACK_WEBHOOK_URL, json=message)
             response.raise_for_status()
             print(f"✅ Notificación enviada a Slack para la aplicación '{app_name}'.")

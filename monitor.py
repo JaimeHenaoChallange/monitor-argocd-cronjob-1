@@ -11,9 +11,9 @@ REQUEST_TIMEOUT = 10  # Tiempo de espera en segundos
 
 def main():
     print("🔧 Iniciando el monitor de ArgoCD...")  # Mensaje de depuración
-    print(f"ARGOCD_API: {os.getenv('ARGOCD_API')}")
-    print(f"SLACK_WEBHOOK_URL: {os.getenv('SLACK_WEBHOOK_URL')}")
-    print(f"ARGOCD_TOKEN: {os.getenv('ARGOCD_TOKEN')}")
+    print(f"ARGOCD_API: {os.getenv('ARGOCD_API', '***')}")
+    print(f"SLACK_WEBHOOK_URL: {'***' if os.getenv('SLACK_WEBHOOK_URL') else 'No configurado'}")
+    print(f"ARGOCD_TOKEN: {'***' if os.getenv('ARGOCD_TOKEN') else 'No configurado'}")
 
     attempts = {}
     notified = set()
