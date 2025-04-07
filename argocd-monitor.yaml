@@ -10,8 +10,8 @@ metadata:
   name: argocd-monitor-config
   namespace: poc
 data:
-  ARGOCD_API: "https://argocd-server.argocd.svc.cluster.local/api/v1" # Cambiado para usar el servicio de ArgoCD en el clúster
-  SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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"
+  ARGOCD_API: "https://argocd-server.argocd.svc.cluster.local/api/v1"
+  SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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" # Actualizado con la nueva URL
 
 ---
 apiVersion: v1
