@@ -65,6 +65,7 @@ def main():
                         print(f"🔄 Intentando recuperar '{app_name}' (Intento {attempts[app_name] + 1}/3)...")
                         ArgoCDClient.sync_app(app_name, timeout=REQUEST_TIMEOUT)
                         attempts[app_name] += 1
+                        time.sleep(10)  # Esperar 10 segundos entre intentos
                     else:
                         if app_name not in notified:
                             print(f"⏸️ '{app_name}' no se pudo recuperar después de 3 intentos. Notificando y pausando...")
