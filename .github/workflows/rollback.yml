@@ -1,0 +1,56 @@
+name: Rollback Application
+
+on:
+  workflow_dispatch:  # Permite ejecutar el workflow manualmente
+    inputs:
+      app_name:
+        description: "Nombre de la aplicación a realizar rollback"
+        required: true
+      commit_hash:
+        description: "Hash del commit al que se desea hacer rollback"
+        required: true
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout del repositorio
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    # Configurar Git
+    - name: Configure Git
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+
+    # Validar el commit hash
+    - name: Validate Commit Hash
+      run: |
+        if ! git cat-file -e ${{ github.event.inputs.commit_hash }}; then
+          echo "El commit hash proporcionado no es válido."
+          exit 1
+        fi
+
+    # Revertir al commit especificado
+    - name: Revert to Commit
+      run: |
+        git revert ${{ github.event.inputs.commit_hash }} --no-commit
+        git commit -m "Rollback for application ${{ github.event.inputs.app_name }} to commit ${{ github.event.inputs.commit_hash }}"
+        git push origin main
+
+    # Notificar a Slack (opcional)
+    - name: Notify Slack
+      if: always()
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        if [ ${{ job.status }} == "success" ]; then
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "Rollback completado para la aplicación: ${{ github.event.inputs.app_name }}. Revertido al commit: ${{ github.event.inputs.commit_hash }}."
+          }' $SLACK_WEBHOOK_URL
+        else
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "El rollback para la aplicación: ${{ github.event.inputs.app_name }} falló. Requiere intervención manual."
+          }' $SLACK_WEBHOOK_URL
