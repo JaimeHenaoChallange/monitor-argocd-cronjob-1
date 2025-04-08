@@ -15,6 +15,7 @@ GIT_BRANCH = "main"  # Rama principal
 
 # Diccionario para rastrear el estado y la versión de las aplicaciones
 app_versions = {}
+notified = set()
 
 def get_app_version(app):
     """Obtiene la versión de la aplicación desde su etiqueta o anotación."""
@@ -54,7 +55,6 @@ def main():
     print(f"ARGOCD_TOKEN: {'***' if os.getenv('ARGOCD_TOKEN') else 'No configurado'}")
 
     attempts = {}
-    notified = set()
     paused_apps = set()
     problematic_apps = set()
 
@@ -93,11 +93,19 @@ def main():
                 previous_health_status = app_versions[app_name]["health_status"]
                 previous_version = app_versions[app_name]["version"]
 
-                if health_status == "Healthy" and sync_status == "Synced":
+                if health_status in ["Degraded", "Error", "OutOfSync"] and app_name not in notified:
+                    SlackNotifier.send_notification(
+                        app_name, health_status, 0, "Se detectó un problema en la aplicación.", level="alert"
+                    )
+                    notified.add(app_name)
+                elif health_status == "Healthy" and app_name in notified:
+                    SlackNotifier.send_notification(
+                        app_name, "Healthy", 0, "La aplicación volvió a estar Healthy.", level="info"
+                    )
+                    notified.remove(app_name)
+                elif health_status == "Healthy" and sync_status == "Synced":
                     print(f"✅ '{app_name}' está en estado Healthy y Synced.")
-                    if app_name in notified or app_name in paused_apps or app_name in problematic_apps:
-                        SlackNotifier.send_notification(app_name, "Healthy", attempts[app_name], "La aplicación volvió a estar Healthy.")
-                        notified.discard(app_name)
+                    if app_name in paused_apps or app_name in problematic_apps:
                         paused_apps.discard(app_name)
                         problematic_apps.discard(app_name)
                     attempts[app_name] = 0
@@ -115,15 +123,12 @@ def main():
                         attempts[app_name] += 1
                         time.sleep(10)  # Esperar 10 segundos entre intentos
                     else:
-                        if app_name not in notified:
-                            print(f"⏸️ '{app_name}' no se pudo recuperar después de 3 intentos. Notificando y pausando...")
-                            SlackNotifier.send_notification(app_name, health_status, attempts[app_name], "La aplicación fue pausada después de 3 intentos fallidos.")
+                        if app_name not in paused_apps:
+                            print(f"⏸️ '{app_name}' no se pudo recuperar después de 3 intentos. Pausando...")
                             paused_apps.add(app_name)
-                            notified.add(app_name)
                 elif health_status in ["Degraded", "Error", "OutOfSync"] and current_version != previous_version:
                     print(f"⚠️ '{app_name}' cambió de estado ({previous_health_status} -> {health_status}) y de versión ({previous_version} -> {current_version}). Iniciando rollback...")
                     rollback_application(app_name)
-                    SlackNotifier.send_notification(app_name, health_status, 0, f"Rollback realizado para la versión {current_version}.")
                 else:
                     print(f"ℹ️ '{app_name}' está en estado desconocido: {health_status}.")
 
