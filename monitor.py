@@ -13,9 +13,8 @@ GIT_REPO_PATH = "/tmp/argocd-repo"  # Ruta temporal para clonar el repositorio
 GIT_REPO_URL = "https://github.com/JaimeHenaoChallange/monitor-argocd-cronjob-1.git"  # URL del repositorio
 GIT_BRANCH = "main"  # Rama principal
 
-# Diccionario para rastrear el estado y la versión de las aplicaciones
-app_versions = {}
-notified = set()
+# Diccionario para rastrear el estado, intentos y versión de las aplicaciones
+app_states = {}
 
 def get_app_version(app):
     """Obtiene la versión de la aplicación desde su etiqueta o anotación."""
@@ -44,23 +43,22 @@ def rollback_application(app_name):
         # Sincronizar la aplicación en ArgoCD
         ArgoCDClient.sync_app(app_name, timeout=REQUEST_TIMEOUT)
         print(f"✅ Rollback completado para la aplicación '{app_name}'.")
+        SlackNotifier.send_notification(
+            app_name, "Rollback", 0, f"Rollback realizado para la aplicación '{app_name}'.", level="critical"
+        )
     except subprocess.CalledProcessError as e:
         print(f"❌ Error al realizar el rollback para '{app_name}': {e}")
 
 def main():
-    global app_versions
+    global app_states
     print("🔧 Iniciando el monitor de ArgoCD...")  # Mensaje de depuración
     print(f"ARGOCD_API: {os.getenv('ARGOCD_API', '***')}")
     print(f"SLACK_WEBHOOK_URL: {'***' if os.getenv('SLACK_WEBHOOK_URL') else 'No configurado'}")
     print(f"ARGOCD_TOKEN: {'***' if os.getenv('ARGOCD_TOKEN') else 'No configurado'}")
 
-    attempts = {}
-    paused_apps = set()
-    problematic_apps = set()
-
     while True:
         try:
-            print("🔍 Obteniendo aplicaciones de ArgoCD...")  # Mensaje de depuración
+            print("🔍 Obteniendo aplicaciones de ArgoCD...")
             apps = ArgoCDClient.get_applications(timeout=REQUEST_TIMEOUT)
 
             if not apps:
@@ -82,59 +80,62 @@ def main():
                 print(f"🔄 Procesando la aplicación: {app_name}")  # Mensaje de depuración
                 ArgoCDClient.refresh_app(app_name, timeout=REQUEST_TIMEOUT)
 
-                if app_name not in attempts:
-                    attempts[app_name] = 0
+                # Inicializar el estado si no está registrado
+                if app_name not in app_states:
+                    app_states[app_name] = {
+                        "health_status": health_status,
+                        "sync_status": sync_status,
+                        "version": current_version,
+                        "attempts": 0,
+                        "paused": False,
+                    }
 
-                # Inicializar el estado y la versión si no están registrados
-                if app_name not in app_versions:
-                    app_versions[app_name] = {"health_status": health_status, "version": current_version}
+                state = app_states[app_name]
 
-                # Verificar si el estado o la versión han cambiado
-                previous_health_status = app_versions[app_name]["health_status"]
-                previous_version = app_versions[app_name]["version"]
+                # Si la aplicación está en pausa, verificar si necesita rollback
+                if state["paused"]:
+                    if health_status in ["Degraded", "Error"] and current_version != state["version"]:
+                        print(f"⚠️ '{app_name}' está en pausa y se detectó un cambio de versión. Iniciando rollback...")
+                        rollback_application(app_name)
+                        state["paused"] = False
+                    continue
 
-                if health_status in ["Degraded", "Error", "OutOfSync"] and app_name not in notified:
-                    SlackNotifier.send_notification(
-                        app_name, health_status, 0, "Se detectó un problema en la aplicación.", level="alert"
-                    )
-                    notified.add(app_name)
-                elif health_status == "Healthy" and app_name in notified:
-                    SlackNotifier.send_notification(
-                        app_name, "Healthy", 0, "La aplicación volvió a estar Healthy.", level="info"
-                    )
-                    notified.remove(app_name)
-                elif health_status == "Healthy" and sync_status == "Synced":
-                    print(f"✅ '{app_name}' está en estado Healthy y Synced.")
-                    if app_name in paused_apps or app_name in problematic_apps:
-                        paused_apps.discard(app_name)
-                        problematic_apps.discard(app_name)
-                    attempts[app_name] = 0
-                elif app_name in paused_apps:
-                    print(f"⏸️ '{app_name}' está pausada. Monitoreando su estado...")
-                elif sync_status == "OutOfSync":
-                    print(f"⚠️ '{app_name}' está OutOfSync. Intentando sincronizar...")
-                    ArgoCDClient.sync_app(app_name, timeout=REQUEST_TIMEOUT)
-                    attempts[app_name] += 1
-                elif health_status in ["Degraded", "Error"]:
-                    problematic_apps.add(app_name)
-                    if attempts[app_name] < 3:
-                        print(f"🔄 Intentando recuperar '{app_name}' (Intento {attempts[app_name] + 1}/3)...")
+                # Manejar estado OutOfSync
+                if sync_status == "OutOfSync":
+                    if state["attempts"] < 3:
+                        print(f"🔄 '{app_name}' está OutOfSync. Intentando sincronizar (Intento {state['attempts'] + 1}/3)...")
                         ArgoCDClient.sync_app(app_name, timeout=REQUEST_TIMEOUT)
-                        attempts[app_name] += 1
-                        time.sleep(10)  # Esperar 10 segundos entre intentos
+                        state["attempts"] += 1
+                        SlackNotifier.send_notification(
+                            app_name, "OutOfSync", state["attempts"], "Intentando sincronizar la aplicación.", level="alert"
+                        )
                     else:
-                        if app_name not in paused_apps:
-                            print(f"⏸️ '{app_name}' no se pudo recuperar después de 3 intentos. Pausando...")
-                            paused_apps.add(app_name)
-                elif health_status in ["Degraded", "Error", "OutOfSync"] and current_version != previous_version:
-                    print(f"⚠️ '{app_name}' cambió de estado ({previous_health_status} -> {health_status}) y de versión ({previous_version} -> {current_version}). Iniciando rollback...")
-                    rollback_application(app_name)
-                else:
-                    print(f"ℹ️ '{app_name}' está en estado desconocido: {health_status}.")
+                        print(f"⏸️ '{app_name}' no se pudo sincronizar después de 3 intentos. Pausando...")
+                        SlackNotifier.send_notification(
+                            app_name, "OutOfSync", state["attempts"], "La aplicación fue pausada después de 3 intentos fallidos.", level="critical"
+                        )
+                        state["paused"] = True
 
-                # Actualizar el estado y la versión registrados
-                app_versions[app_name]["health_status"] = health_status
-                app_versions[app_name]["version"] = current_version
+                # Manejar estado Degraded o Error
+                elif health_status in ["Degraded", "Error"]:
+                    if state["attempts"] < 3:
+                        print(f"🔄 '{app_name}' está en estado {health_status}. Intentando recuperar (Intento {state['attempts'] + 1}/3)...")
+                        ArgoCDClient.sync_app(app_name, timeout=REQUEST_TIMEOUT)
+                        state["attempts"] += 1
+                        SlackNotifier.send_notification(
+                            app_name, health_status, state["attempts"], "Intentando recuperar la aplicación.", level="alert"
+                        )
+                    else:
+                        print(f"⏸️ '{app_name}' no se pudo recuperar después de 3 intentos. Pausando...")
+                        SlackNotifier.send_notification(
+                            app_name, health_status, state["attempts"], "La aplicación fue pausada después de 3 intentos fallidos.", level="critical"
+                        )
+                        state["paused"] = True
+
+                # Actualizar estado y versión
+                state["health_status"] = health_status
+                state["sync_status"] = sync_status
+                state["version"] = current_version
 
             time.sleep(60)
 
