@@ -87,7 +87,7 @@ spec:
       serviceAccountName: argocd-monitor-sa
       containers:
         - name: argocd-monitor
-          image: jaimehenao8126/argocd-monitor:latest
+          image: jaimehenao8126/argocd-monitor:0c968d6f438c735fc6a7fef1084d351aa3976730
           env:
             - name: ARGOCD_API
               valueFrom:
