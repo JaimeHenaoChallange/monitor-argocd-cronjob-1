@@ -2,6 +2,7 @@ import sys
 import os
 import time
 import subprocess
+import requests
 from logic.argocd_client import ArgoCDClient
 from logic.slack_notifier import SlackNotifier
 
@@ -16,18 +17,32 @@ GIT_BRANCH = "main"  # Rama principal
 # Diccionario para rastrear el estado, intentos y versión de las aplicaciones
 app_states = {}
 
-def rollback_application(app_name):
-    """Realiza un rollback de la aplicación."""
-    try:
-        # Lógica de rollback (similar a lo implementado anteriormente)
-        print(f"🔄 Rollback completado para '{app_name}'.")
+GITHUB_API_URL = "https://api.github.com/repos/JaimeHenaoChallange/monitor-argocd-cronjob-1/actions/workflows/rollback.yml/dispatches"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Asegúrate de configurar este token en el entorno
+
+def trigger_github_workflow(app_name, commit_hash):
+    """Dispara el workflow de rollback en GitHub Actions."""
+    headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+    data = {
+        "ref": "main",
+        "inputs": {
+            "app_name": app_name,
+            "commit_hash": commit_hash,
+        },
+    }
+    response = requests.post(GITHUB_API_URL, headers=headers, json=data)
+    if response.status_code == 204:
+        print(f"✅ Workflow de rollback disparado para la aplicación '{app_name}'.")
         SlackNotifier.send_notification(
-            app_name, "Rollback", 0, f"Rollback completado para la aplicación '{app_name}'.", level="critical"
+            app_name, "Rollback", 0, f"Workflow de rollback disparado para la aplicación '{app_name}'.", level="critical"
         )
-    except Exception as e:
-        print(f"❌ Error al realizar el rollback para '{app_name}': {e}")
+    else:
+        print(f"❌ Error al disparar el workflow: {response.status_code}, {response.text}")
         SlackNotifier.send_notification(
-            app_name, "Rollback", 0, f"El rollback para la aplicación '{app_name}' falló. Requiere intervención manual.", level="critical"
+            app_name, "Rollback", 0, f"Error al disparar el workflow de rollback para '{app_name}'.", level="critical"
         )
 
 def main():
@@ -79,11 +94,8 @@ def main():
                 if state["paused"]:
                     if health_status in ["Degraded", "Error"] and current_version != state["version"]:
                         if not state["notified_rollback"]:
-                            SlackNotifier.send_notification(
-                                app_name, "Rollback", 0, f"Iniciando rollback para la versión {current_version}.", level="critical"
-                            )
+                            trigger_github_workflow(app_name, current_version)
                             state["notified_rollback"] = True
-                        rollback_application(app_name)
                         state["paused"] = False
                     continue
 
