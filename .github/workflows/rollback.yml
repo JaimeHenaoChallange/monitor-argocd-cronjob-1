@@ -9,6 +9,9 @@ on:
       commit_hash:
         description: "Hash del commit al que se desea hacer rollback"
         required: true
+  repository_dispatch:  # Permite que el workflow sea disparado automáticamente
+    types:
+      - trigger-rollback  # Tipo de evento personalizado
 
 jobs:
   rollback:
@@ -27,10 +30,16 @@ jobs:
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
 
+    # Log Inputs
+    - name: Log Inputs
+      run: |
+        echo "App Name: ${{ github.event.client_payload.app_name }}"
+        echo "Commit Hash: ${{ github.event.client_payload.commit_hash }}"
+
     # Validar el commit hash
     - name: Validate Commit Hash
       run: |
-        if ! git cat-file -e ${{ github.event.inputs.commit_hash }}^{commit}; then
+        if ! git cat-file -e ${{ github.event.client_payload.commit_hash }}^{commit}; then
           echo "El commit hash proporcionado no es válido."
           exit 1
         fi
@@ -38,8 +47,8 @@ jobs:
     # Revertir al commit especificado
     - name: Revert to Commit
       run: |
-        git revert ${{ github.event.inputs.commit_hash }} --no-commit
-        git commit -m "Rollback for application ${{ github.event.inputs.app_name }} to commit ${{ github.event.inputs.commit_hash }}"
+        git revert ${{ github.event.client_payload.commit_hash }} --no-commit
+        git commit -m "Rollback for application ${{ github.event.client_payload.app_name }} to commit ${{ github.event.client_payload.commit_hash }}"
         git push origin main
 
     # Notificar a Slack
@@ -49,9 +58,9 @@ jobs:
       run: |
         if [[ "${{ job.status }}" == "success" ]]; then
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Rollback completado para la aplicación: ${{ github.event.inputs.app_name }}. Revertido al commit: ${{ github.event.inputs.commit_hash }}."
+            "text": "Rollback completado para la aplicación: ${{ github.event.client_payload.app_name }}. Revertido al commit: ${{ github.event.client_payload.commit_hash }}."
           }' $SLACK_WEBHOOK_URL
         else
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "El rollback para la aplicación: ${{ github.event.inputs.app_name }} falló. Requiere intervención manual."
+            "text": "El rollback para la aplicación: ${{ github.event.client_payload.app_name }} falló. Requiere intervención manual."
           }' $SLACK_WEBHOOK_URL

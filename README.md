@@ -274,6 +274,39 @@ If the response contains application data, the connectivity is working correctly
 
 ---
 
+### **5. Seguridad**
+
+- **Almacenar Secretos en Kubernetes**:
+  Usa secretos de Kubernetes para almacenar `ARGOCD_TOKEN` y `GITHUB_TOKEN`.
+
+---
+
+### **6. Pruebas**
+
+- **Pruebas Unitarias**:
+  Agrega pruebas para funciones críticas como `trigger_rollback`.
+
+### Trigger Rollback Event
+
+To trigger a rollback event for a specific application, use the following GitHub API call:
+```bash
+curl -X POST -H "Authorization: Bearer <GITHUB_TOKEN>" \
+     -H "Accept: application/vnd.github.v3+json" \
+     -d '{"event_type": "trigger-rollback", "client_payload": {"app_name": "my-app", "commit_hash": "abc123"}}' \
+     https://api.github.com/repos/JaimeHenaoChallange/monitor-argocd-cronjob-1/dispatches
+```
+
+---
+
+## Ejemplo de Uso
+
+### Ejecutar el Script de Monitoreo Localmente
+```bash
+python scripts/monitor.py
+```
+
+---
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
