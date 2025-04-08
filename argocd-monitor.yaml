@@ -24,6 +24,16 @@ data:
 
 ---
 apiVersion: v1
+kind: Secret
+metadata:
+  name: github-token-secret
+  namespace: poc
+type: Opaque
+data:
+  GITHUB_TOKEN: <base64_encoded_github_token>
+
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: argocd-monitor-sa
@@ -74,12 +84,28 @@ spec:
       labels:
         app: argocd-monitor
     spec:
+      serviceAccountName: argocd-monitor-sa
       containers:
         - name: argocd-monitor
           image: jaimehenao8126/argocd-monitor:latest
           env:
+            - name: ARGOCD_API
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-monitor-config
+                  key: ARGOCD_API
+            - name: ARGOCD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: argocd-monitor-secret
+                  key: ARGOCD_TOKEN
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: github-token-secret
                   key: GITHUB_TOKEN
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: argocd-monitor-secret
+                  key: SLACK_WEBHOOK_URL
