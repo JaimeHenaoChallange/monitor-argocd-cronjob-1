@@ -77,7 +77,7 @@ spec:
       serviceAccountName: argocd-monitor-sa
       containers:
         - name: argocd-monitor
-          image: jaimehenao8126/argocd-monitor:499f4c03a4ae775eb481567674424ed7d850b011
+          image: jaimehenao8126/argocd-monitor:c4c3e7131c5915f9c299d077ba94cb19373f8af7
           env:
             - name: SLACK_WEBHOOK_URL
               valueFrom:
