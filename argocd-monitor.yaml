@@ -74,25 +74,12 @@ spec:
       labels:
         app: argocd-monitor
     spec:
-      serviceAccountName: argocd-monitor-sa
       containers:
         - name: argocd-monitor
-          image: jaimehenao8126/argocd-monitor:7fed35d76ee864727391b46b1a3234a55ebfedf7
+          image: jaimehenao8126/argocd-monitor:latest
           env:
-            - name: SLACK_WEBHOOK_URL
+            - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: slack-webhook-secret
-                  key: SLACK_WEBHOOK_URL
-          envFrom:
-            - configMapRef:
-                name: argocd-monitor-config
-            - secretRef:
-                name: argocd-monitor-secret
-          resources:
-            limits:
-              memory: "256Mi"
-              cpu: "500m"
-            requests:
-              memory: "128Mi"
-              cpu: "250m"
+                  name: github-token-secret
+                  key: GITHUB_TOKEN
