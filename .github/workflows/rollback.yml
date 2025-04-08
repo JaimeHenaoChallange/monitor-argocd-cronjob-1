@@ -18,6 +18,8 @@ jobs:
     # Checkout del repositorio
     - name: Checkout Repository
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Asegura que se obtenga todo el historial del repositorio
 
     # Configurar Git
     - name: Configure Git
@@ -28,7 +30,7 @@ jobs:
     # Validar el commit hash
     - name: Validate Commit Hash
       run: |
-        if ! git cat-file -e ${{ github.event.inputs.commit_hash }}; then
+        if ! git cat-file -e ${{ github.event.inputs.commit_hash }}^{commit}; then
           echo "El commit hash proporcionado no es válido."
           exit 1
         fi
@@ -40,13 +42,12 @@ jobs:
         git commit -m "Rollback for application ${{ github.event.inputs.app_name }} to commit ${{ github.event.inputs.commit_hash }}"
         git push origin main
 
-    # Notificar a Slack (opcional)
+    # Notificar a Slack
     - name: Notify Slack
-      if: always()
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       run: |
-        if [ ${{ job.status }} == "success" ]; then
+        if [[ "${{ job.status }}" == "success" ]]; then
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "Rollback completado para la aplicación: ${{ github.event.inputs.app_name }}. Revertido al commit: ${{ github.event.inputs.commit_hash }}."
           }' $SLACK_WEBHOOK_URL

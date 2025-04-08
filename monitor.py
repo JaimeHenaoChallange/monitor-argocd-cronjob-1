@@ -84,7 +84,6 @@ def main():
                         "version": current_version,
                         "attempts": 0,
                         "paused": False,
-                        "notified_recovery": False,
                         "notified_rollback": False,
                     }
 
@@ -132,14 +131,6 @@ def main():
                             app_name, health_status, state["attempts"], "La aplicación fue pausada después de 3 intentos fallidos.", level="critical"
                         )
                         state["paused"] = True
-
-                # Notificar si la aplicación vuelve a estar Healthy
-                if health_status == "Healthy" and not state["notified_recovery"]:
-                    print(f"✅ '{app_name}' ha vuelto al estado Healthy.")
-                    SlackNotifier.send_notification(
-                        app_name, "Healthy", 0, "La aplicación ha vuelto al estado Healthy.", level="info"
-                    )
-                    state["notified_recovery"] = True
 
                 # Actualizar estado y versión
                 state["health_status"] = health_status
